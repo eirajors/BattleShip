@@ -1,93 +1,262 @@
-# Assignment-1-Battleship
+# Battleship - Semester Assignment 1
 
 
+In this assignment you will implement parts of the game **Battleship** and develop your own artificial intelligence (AI) to play the game.
 
-## Getting started
+The goal of Battleship is to find and sink all of your opponent's ships before they sink yours.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+In this version of the game, each player has a 10 × 10 board and three ships. Each ship occupies *three* cells and can be placed either horizontally or vertically.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+For every shot, the game reports one of the following results:
 
-## Add your files
+- **MISS** – the shot did not hit a ship
+- **HIT** – the shot hit a ship, but the ship is not yet sunk
+- **SUNK** – the shot hit the final remaining part of a ship
+- **ALREADY_SHOT** – the position has already been shot at
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+Your job is to finish the implementation of the game and create an AI that can play Battleship.
 
-```
-cd existing_repo
-git remote add origin https://git.app.uib.no/ii/inf102/26h/dev/assignment-1-battleship.git
-git branch -M main
-git push -uf origin main
-```
+---
 
-## Integrate with your tools
+## Overview
 
-* [Set up project integrations](https://git.app.uib.no/ii/inf102/26h/dev/assignment-1-battleship/-/settings/integrations)
+The program uses a Model-View-Controller structure similar to the programs you have worked with in INF101.
 
-## Collaborate with your team
+The most important parts of the program are:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+- `BattleShipBoard` represents a Battleship board and keeps track of ships and shots.
+- `Ship` represents a ship and keeps track of which parts of the ship have been hit.
+- `BattleShipModel` controls the state of a game.
+- `IStrategy` defines how an AI chooses where to shoot.
+- `IPlacer` defines how an AI places its ships.
+- `AIShipPlacer` is a provided baseline for random ship placement.
+- `HuntTargetStrategy` is a provided baseline strategy that shoots randomly.
+- `MyPlacer` is where you implement your own ship placement strategy.
+- `MyStrategy` is where you implement your own shooting strategy.
 
-## Test and Deploy
+The graphical interface and game controllers are provided. You should not need to modify them.
 
-Use the built-in continuous integration in GitLab.
+---
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+# Part 1 - Finish the game
 
-***
+The provided program contains several incomplete methods.
 
-# Editing this README
+Your first task is to make the Battleship game function correctly.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+The tests in `src/test` describe the expected behavior of the game.
 
-## Suggestions for a good README
+You should first make the tests for `Ship` and `BattleShipBoard` pass before moving on to the AI.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+---
 
-## Name
-Choose a self-explaining name for your project.
+## Task 1 - Ship
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+The `Ship` class represents a single ship.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+A ship has:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+- a starting position
+- a direction
+- three positions on the board
+- information about which positions have been hit
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Some functionality has already been implemented for you.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### TODO: Implement `Ship::hit`
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+The `hit` method should register a hit on the ship.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+The method should:
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+- return `true` if a new hit was successfully registered
+- return `false` if the position does not belong to the ship
+- return `false` if that position has already been hit
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+A position should only count as one hit.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+---
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+## Task 2 - Check whether a ship is sunk
 
-## License
-For open source projects, say how it is licensed.
+### TODO: Implement `Ship::isSunk`
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+A ship is sunk when all of its positions have been hit.
+
+The method should return:
+
+- `false` when one or more parts of the ship have not been hit
+- `true` when every part of the ship has been hit
+
+Run `ShipTest` to check your implementation.
+
+---
+
+# Part 2 - Implement the Battleship board
+
+The `BattleShipBoard` class represents one player's board.
+
+The board has:
+
+- size 10 × 10
+- three ships
+- information about all shots that have been made
+
+You must implement the following methods.
+
+---
+
+## Task 3 - Place ships
+
+### TODO: Implement `BattleShipBoard::placeShip`
+
+The method receives:
+
+- a starting position
+- a direction
+
+It should create and place a ship on the board if the placement is valid.
+
+A placement is valid when:
+
+- fewer than three ships have already been placed
+- every part of the ship is inside the board
+- the ship does not overlap an existing ship
+
+Ships are allowed to touch each other.
+
+The method should return:
+
+- `true` if the ship was successfully placed
+- `false` if the placement is invalid
+
+
+---
+
+## Task 4 - Shoot at the board
+
+### TODO: Implement `BattleShipBoard::shoot`
+
+The method receives a position and should return the result of shooting at that position.
+
+The possible results are:
+
+- `MISS`
+- `HIT`
+- `SUNK`
+- `ALREADY_SHOT`
+
+If the position has already been shot at, the method should return `ALREADY_SHOT`.
+
+If a ship is hit, the corresponding `Ship` object must be informed about the hit.
+
+If the hit sinks the ship, the method should return `SUNK`.
+
+If there is no ship at the position, the method should return `MISS`.
+
+Shooting outside the board should throw an `IllegalArgumentException`.
+
+---
+
+## Task 5 - Check whether the game is won
+
+### TODO: Implement `BattleShipBoard::allShipsSunk`
+
+The method should return `true` only when:
+
+1. all three ships have been placed, and
+2. every ship has been sunk.
+
+Otherwise it should return `false`.
+
+At this point you shouldbe able to run `BattleShipMain.java` to play the Human vs AI version of the game.
+
+---
+
+# Part 3 - Create your own AI
+
+Now that the game works, it is time to create an AI that can play Battleship.
+
+Two baseline implementations are provided.
+
+They give you something to compare your own AI against.
+
+---
+
+## Baseline ship placement
+
+`AIShipPlacer` is a provided strategy that places ships randomly.
+
+It chooses random starting positions and random directions until all ships have been placed.
+
+This is intentionally a simple strategy.
+
+You should use it as a baseline when evaluating your own ship placement strategy.
+
+**Do not modify `AIShipPlacer`.**
+
+---
+
+## Baseline shooting strategy
+
+`HuntTargetStrategy` is also provided as a baseline.
+
+Despite its name, this version simply chooses a random position that has not been shot at before.
+
+It does not use information from previous hits to improve its future shots.
+
+This makes it a useful baseline for evaluating your own shooting strategy.
+
+**Do not modify `HuntTargetStrategy`.**
+
+---
+
+# Task 6 - Ship placement strategy
+
+### TODO: Implement `MyPlacer::placeShips`
+
+Your goal is to create a better ship placement strategy than the random baseline.
+
+Implement your strategy in:
+
+`MyPlacer.java`
+
+Your strategy must place all three ships legally on the board.
+
+You should think about how an opponent is likely to search the board.
+
+For example, consider:
+
+- whether your ships should be spread out
+- whether some positions are more likely to be attacked
+- whether your ships should be placed close together or far apart
+- whether predictable patterns make your ships easier to find
+
+You are free to choose your own strategy.
+
+The important requirement is that your strategy should be your own implementation and should place all ships successfully.
+
+---
+
+# Task 7 - Shooting strategy
+
+### TODO: Implement `MyStrategy`
+
+Your shooting strategy is implemented in:
+
+`MyStrategy.java`
+
+The strategy has two important methods:
+
+```java
+chooseShot()
+
+registerShot(CellPosition position, boolean hit)
+``` 
+The first method chooses which location you want to attack.
+The second method gives you the feedback on your previous attack and it is upto you on how to use it for your AI.
+
+
+For this task you must explain your code. What was your idea for your strategy?
+
+*Write your answer here*
