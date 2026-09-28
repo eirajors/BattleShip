@@ -44,9 +44,19 @@ public class BattleShipBoard {
      * @return true if the ship was successfully placed, otherwise false
      */
     public boolean placeShip(CellPosition startPosition, Direction direction) {
-        // TODO: IMPLEMENT ME PWEASE 
         // Implement ship placement.
+        if (ships.size() >= NUMBER_OF_SHIPS) {
+            return false;
+        }
+        Ship newShip = new Ship(startPosition, direction);
+        if (isValidPlacement(newShip)) {
+            ships.add(newShip); 
+            return true; 
+        }
+        //ships.add(newShip);
+
         return false;
+        //return false;
     }
 
     /**
@@ -63,9 +73,29 @@ public class BattleShipBoard {
      * @throws IllegalArgumentException if the position is outside the board
      */
     public ShotResult shoot(CellPosition position) {
-        // TODO: IMPLEMENT ME PWEASE 
         // Implement shooting.
-        return null;
+        if (!isInsideBoard(position)) {
+            throw new IllegalArgumentException("Shot is outside board"); 
+        }
+
+        if (hasBeenShot(position)) {
+            shots[position.row][position.col] = ShotResult.ALREADY_SHOT; 
+            return ShotResult.ALREADY_SHOT; 
+        }
+        else {
+            for (Ship ship : ships) {
+                if (ship.hit(position)) {
+                    if (ship.isSunk()) {
+                        shots[position.row][position.col] = ShotResult.SUNK; 
+                        return ShotResult.SUNK;
+                    }
+                    shots[position.row][position.col] = ShotResult.HIT; 
+                    return ShotResult.HIT; 
+                }
+            }
+            shots[position.row][position.col] = ShotResult.MISS; 
+            return ShotResult.MISS; 
+        }
     }
 
     /**
@@ -78,9 +108,13 @@ public class BattleShipBoard {
      *         otherwise false
      */
     public boolean allShipsSunk() {
-        // TODO: IMPLEMENT ME PWEASE 
         // Check whether all ships have been sunk.
-        return false;
+        for (Ship ship : ships) {
+            if (!ship.isSunk()) {
+                return false; 
+            }
+        }
+        return true;
     }
 
     /**

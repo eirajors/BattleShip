@@ -76,10 +76,37 @@ public class Ship {
      * @return true if a new hit was registered, otherwise false
      */
     public boolean hit(CellPosition position) {
-        // TODO:  IMPLEMENT ME PWEASE
         // Register the hit if the position belongs to the ship
         // and has not already been hit.
+
+        if (positions.contains(position)) {
+            int hitPosition = findIndexHit(position);
+
+            if (!hits[hitPosition]) {
+                hits[hitPosition] = true; 
+                return true;
+            }
+        }
         return false;
+    }
+
+    /**
+     * Given the position, finds the index of the hit in the hits array
+     * 
+     * @param position the position to check
+     * @return the index of the position in hits
+     */
+    private int findIndexHit(CellPosition position) {
+        int indexShip = 0; 
+
+        for (int i = 0; i < SIZE; i++ ){
+            if (positions.get(i).equals(position)) {
+                indexShip = i; 
+                break; 
+            }
+        }
+
+        return indexShip; 
     }
 
     /**
@@ -89,9 +116,13 @@ public class Ship {
      *         otherwise false
      */
     public boolean isSunk() {
-        // TODO: IMPLEMENT ME PWEASE
         //  Check whether all positions of the ship have been hit.
-        return false;
+        for (int i = 0; i < hits.length; i++) {
+            if (hits[i] == false) {
+                return false; 
+            }
+        }
+        return true;
     }
 
     /**
