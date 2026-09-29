@@ -13,10 +13,11 @@ import no.uib.inf102.grid.CellPosition;
  * to find and sink your ships.
  */
 public class MyPlacer implements IPlacer {
-    private static final int BOARD_SIZE = BattleShipBoard.SIZE; 
+    // private static final int BOARD_SIZE = BattleShipBoard.SIZE; 
 
-    public MyPlacer() {
-    }
+    // public MyPlacer() {
+    // }
+    
     /**
      * Places all ships on the given board.
      *
