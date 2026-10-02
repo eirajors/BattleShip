@@ -18,7 +18,7 @@ public class MyStrategy implements IStrategy {
 
     private static final int BOARD_SIZE = 10; 
 
-    private final boolean[][] shotAt; 
+    // private final boolean[][] shotAt; 
     private final ShotResult[][] hitsChart; 
     private static CellPosition orgHitPos; 
     private static boolean isHit; 
@@ -26,7 +26,7 @@ public class MyStrategy implements IStrategy {
 
 
     public  MyStrategy() {
-        shotAt = new boolean[BOARD_SIZE][BOARD_SIZE];
+        // shotAt = new boolean[BOARD_SIZE][BOARD_SIZE];
         hitsChart = new ShotResult[BOARD_SIZE][BOARD_SIZE]; 
         orgHitPos = null; 
         isHit = false; 
@@ -68,7 +68,7 @@ public class MyStrategy implements IStrategy {
      */
     @Override
     public void registerShot(CellPosition position, boolean hit) {
-        shotAt[position.row()][position.col()] = true;  
+        // shotAt[position.row()][position.col()] = true;  
 
         if (hit) {
             hitsChart[position.row()][position.col()] = ShotResult.HIT; 
@@ -111,21 +111,17 @@ public class MyStrategy implements IStrategy {
     }
 
     private CellPosition lookAroundPosition(CellPosition position) {
-        int col = position.col(); 
-        int row = position.row(); 
-        CellPosition next = null; 
 
-        if (col + 1 < BOARD_SIZE && hitsChart[row][col + 1] != ShotResult.MISS) {
-            next = checkColumns(position, 1); 
+        CellPosition next = checkDirections(position, 1, 0); 
+
+        if (next == null) {
+            next = checkDirections(position, -1, 0); 
         }
-        if (next == null && col - 1 >= 0 && hitsChart[row][col - 1] != ShotResult.MISS) {
-            next = checkColumns(position, -1);
+        if (next == null) { 
+            next = checkDirections(position, 0, 1); 
         }
-        if (next == null && row + 1 < BOARD_SIZE && hitsChart[row + 1][col] != ShotResult.MISS) { 
-            next = checkRows(position, 1);
-        }
-        if (next == null && row - 1 >= 0 && hitsChart[row - 1][col] != ShotResult.MISS) {
-            next = checkRows(position, -1);
+        if (next == null) {
+            next = checkDirections(position, 0, -1); 
         }
         
         return next; 
@@ -151,6 +147,15 @@ public class MyStrategy implements IStrategy {
 
     }
 
+    /**
+     * checks the columns either below or above the given cellposition depending on the direction
+     * 
+     * @param position the original hit position 
+     * @param cDir the direction in which to shoot for the column
+     * @param rDir the direction in which to shoot for the row
+     * @return a new cellposition to shoot if the next cellposition is empty, if it is already a miss
+     *         it will return null
+     */
     private CellPosition checkDirections (CellPosition position, int cDir, int rDir) {
 
         int col = position.col() + cDir;
@@ -170,57 +175,7 @@ public class MyStrategy implements IStrategy {
         return null; 
 
     }
-
-    /**
-     * checks the columns either below or above the given cellposition depending on the direction
-     * 
-     * @param position the original hit position 
-     * @param direction the direction in which to shoot
-     * @return a new cellposition to shoot if the next cellposition is empty, if it is already a miss
-     *         it will return null
-     */
-    private CellPosition checkColumns (CellPosition position, int direction) {
-
-        int row = position.row();
-
-        for (int col = position.col() + direction; col >= 0 && col < BOARD_SIZE; col += direction) {
-                if (hitsChart[row][col] == null) {
-                    return new CellPosition(row, col);
-                }
-                if (hitsChart[row][col] == ShotResult.MISS) {
-                    return null; 
-                }
-            
-        }
-        return null; 
-    }
-
     
-    /**
-     * checks the rows either below or above the given cellposition depending on the direction
-     * 
-     * @param position the original hit position 
-     * @param direction the direction in which to shoot
-     * @return a new cellposition to shoot if the next cellposition is empty, if it is already a miss
-     *         it will return null
-     */
-    private CellPosition checkRows(CellPosition position, int direction) {
-
-        int col = position.col();
-
-        for (int row = position.row() + direction; row >= 0 && row < BOARD_SIZE; row += direction) {
-                if (hitsChart[row][col] == null) {
-                    return new CellPosition(row, col);
-                }
-                if (hitsChart[row][col] == ShotResult.MISS) {
-                    return null; 
-                }
-            
-        }
-        return null; 
-    }
-    
-
     /**
      * Default shooting method. Shoots every third column in a row 
      * 
@@ -234,7 +189,7 @@ public class MyStrategy implements IStrategy {
 
             for (int col = start; col < BOARD_SIZE; col += 3) {
 
-                if (!shotAt[row][col]) {
+                if (hitsChart[row][col] == null) {
                     return new CellPosition(row, col); 
                 }
                 
@@ -243,6 +198,7 @@ public class MyStrategy implements IStrategy {
 
         return null; 
     }
+
  
 }
 
