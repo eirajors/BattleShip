@@ -18,20 +18,19 @@ public class MyStrategy implements IStrategy {
 
     private static final int BOARD_SIZE = 10; 
 
-    // private final boolean[][] shotAt; 
     private final ShotResult[][] hitsChart; 
-    private static CellPosition orgHitPos; 
-    private static boolean isHit; 
-    private static List<CellPosition> hitPositions; 
+    private CellPosition orgHitPos; 
+    private boolean isHit; 
+    private List<CellPosition> hitPositions; 
+    private int patternRow; 
 
 
     public  MyStrategy() {
-        // shotAt = new boolean[BOARD_SIZE][BOARD_SIZE];
         hitsChart = new ShotResult[BOARD_SIZE][BOARD_SIZE]; 
-        orgHitPos = null; 
-        isHit = false; 
-        hitPositions = new ArrayList<>(); 
-
+        this.orgHitPos = null; 
+        this.isHit = false; 
+        this.hitPositions = new ArrayList<>(); 
+        this.patternRow = 0; 
     }
 
     /**
@@ -42,18 +41,19 @@ public class MyStrategy implements IStrategy {
     @Override
     public CellPosition chooseShot() {
 
-        // gå hver tredje, hvis den registrerer hit, tar den alle rundt den før den går videre til neste
-        // hvis forrige hits er 0 kaller den på funksjon for å gå videre, hvis den er mellom 0 og 3 så 
-        // kaller den på funksjon for å skyte rundt 
         if (!isHit) {
             CellPosition pos = shootEveryThird(); 
-            if (pos != null) {
-                return pos; 
+            if (pos == null) { 
+                pos = checkAroundHitPositions(); 
             }
-            return checkAroundHitPositions(); 
+            if (pos == null) {
+                pos = shootUnshot(); 
+            }
+            return pos; 
         }
         else {
-            return shootAroundHitsChart(orgHitPos);
+            CellPosition pos = shootAroundHitsChart(orgHitPos);
+            return pos;
         }
 
     }
@@ -68,7 +68,6 @@ public class MyStrategy implements IStrategy {
      */
     @Override
     public void registerShot(CellPosition position, boolean hit) {
-        // shotAt[position.row()][position.col()] = true;  
 
         if (hit) {
             hitsChart[position.row()][position.col()] = ShotResult.HIT; 
@@ -91,6 +90,7 @@ public class MyStrategy implements IStrategy {
      * Shoots around the given cellposition. It will shoot in every direction until it gets 
      * a Shotresult.MISS from both checkcolumns and checkrows. It will then return the default shooting
      * method. 
+     * Has a side effect of changing {@code isHit} to false if there are no available shots around the hitposition
      * 
      * @param position the cellposition which was hit and is going to be shot around
      * @return the next available cellposition to shoot
@@ -106,32 +106,43 @@ public class MyStrategy implements IStrategy {
         if (next == null) {
             next = checkAroundHitPositions(); 
         }
+        if (next == null) {
+            next = shootUnshot(); 
+        }
 
         return next; 
     }
 
+    /**
+     * Looks around a hitposition for any other hits.
+     * 
+     * @param position a hitposition
+     * @return an empty cellposition next to a hitposition. If all directions are checked, it will return null
+     */
     private CellPosition lookAroundPosition(CellPosition position) {
 
-        CellPosition next = checkDirections(position, 1, 0); 
+        CellPosition next = checkDirections(position, 0, 1); 
 
         if (next == null) {
-            next = checkDirections(position, -1, 0); 
+            next = checkDirections(position, 0, -1); 
         }
         if (next == null) { 
-            next = checkDirections(position, 0, 1); 
+            next = checkDirections(position, 1, 0); 
         }
         if (next == null) {
-            next = checkDirections(position, 0, -1); 
+            next = checkDirections(position, -1, 0); 
         }
         
         return next; 
     }
 
-
-    // lagre alle hit positions i en liste, og deretter sjekk rundt alle - failsafe
     /**
+     * If not all hitpositions are found before the end of the board, this
+     * will check around all hitpositions found until the remainding hitpositions are found
+     * If all positions around a hitposition is a miss, it will continue to the next hitposition 
      * 
-     * @return
+     * @return next available cellposition next to a hitposition, if all positions around a hitposition are checked
+     *         null will be returned
      */
     private CellPosition checkAroundHitPositions () {
         CellPosition next = null; 
@@ -148,15 +159,15 @@ public class MyStrategy implements IStrategy {
     }
 
     /**
-     * checks the columns either below or above the given cellposition depending on the direction
+     * Checks the columns or rows around a cellposition depending on the direction
      * 
      * @param position the original hit position 
-     * @param cDir the direction in which to shoot for the column
      * @param rDir the direction in which to shoot for the row
+     * @param cDir the direction in which to shoot for the column
      * @return a new cellposition to shoot if the next cellposition is empty, if it is already a miss
      *         it will return null
      */
-    private CellPosition checkDirections (CellPosition position, int cDir, int rDir) {
+    private CellPosition checkDirections (CellPosition position, int rDir, int cDir) {
 
         int col = position.col() + cDir;
         int row = position.row() + rDir; 
@@ -178,19 +189,20 @@ public class MyStrategy implements IStrategy {
     
     /**
      * Default shooting method. Shoots every third column in a row 
+     * Has a side effect of changing the {@code patternRow} by which row it is currently searching
      * 
      * @return the cellposition to shoot 
      */
     private CellPosition shootEveryThird () {
-        
-        for (int row = 0; row < BOARD_SIZE; row++) {
 
-            int start = row % 3; 
+        for (; patternRow < BOARD_SIZE; patternRow++) {
+
+            int start = patternRow % 3; 
 
             for (int col = start; col < BOARD_SIZE; col += 3) {
 
-                if (hitsChart[row][col] == null) {
-                    return new CellPosition(row, col); 
+                if (hitsChart[patternRow][col] == null) {
+                    return new CellPosition(patternRow, col); 
                 }
                 
             }
@@ -199,92 +211,26 @@ public class MyStrategy implements IStrategy {
         return null; 
     }
 
+    /**
+     * Shoots all the missing cellpositions if every other method fails to shoot all the ships
+     * 
+     * @return the cellposition to shoot, null if there are no more cellpositions available
+     */
+    private CellPosition shootUnshot() {
+
+        for (int row = 0; row < BOARD_SIZE; row ++) {
+
+            for (int col = 0; col < BOARD_SIZE; col ++) {
+                if (hitsChart[row][col] == null) {
+                    return new CellPosition(row, col);
+                }
+            }
+        }
+        return null; 
+    }
+
  
 }
-
-
-
-
-   // private CellPosition doubleCheckRows(CellPosition position) {
-    //     System.out.println("inne i double check rows"); 
-
-    //     int row = position.row(); 
-    //     int col = position.col(); 
-        
-    //     CellPosition next = null; 
-
-    //     if (row + 2 < BOARD_SIZE && hitsChart[row + 1][col] != ShotResult.MISS) { 
-    //         next = checkRows(position, 1);
-    //     }
-    //     if (next == null && row - 1 > 0 && hitsChart[row - 1][col] != ShotResult.MISS) {
-    //         next = checkRows(position, - 1);
-    //     }
-    //     if (next == null) {
-    //         hits = 0; 
-    //         return shootEveryThird(); 
-    //     }
-
-    //     return next; 
-
-    // }
-      //sjekke kolonner først, hvis de ikke er skutt sjekk dem, om de er false gå og sjekk rader
-        // skal gå til venstre helt til den treffer false -> lagre forrige posisjon i en curr funksjon? 
-
-
-
-        // System.out.println("inne i shoothitschart");
-        // if (position.col() - 1 < 0 && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT) {
-        //     System.out.println("inne i pos.col < 0");
-        //     return checkColumns(position, 1);
-        // }
-
-        // if (position.row() - 1 < 0)  {
-        //     System.out.println("inne i pos.row < 0");
-        //     return checkRows(position, 1);
-        // }
-
-        // if (position.col() + 2 > BOARD_SIZE && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT) {
-        //     System.out.println("inne i pos.col >> ");
-        //     return checkColumns(position, -1);
-        // }
-
-        // if (position.row() + 2 > BOARD_SIZE && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT) {
-        //     System.out.println("inne i pos.row >> ");
-        //     return checkRows(position, -1);
-        // }
-
-        // if (hitsChart[position.row()][position.col() - 1] == null || hitsChart[position.row()][position.col() - 1] == ShotResult.HIT) {
-        //     System.out.println("inne i col 1");
-        //     return checkColumns(position, -1);
-        // }
-        // else if (hitsChart[position.row()][position.col() + 1] == null ) {
-        //     System.out.println("inne i col 2");
-        //     return checkColumns(position, 1);
-        // }
-
-        // if (hitsChart[position.row() - 1][position.col()] == null ) {
-        //     System.out.println("inne i col 3");
-        //     return checkRows(position, -1);
-        // }
-        // else {
-        //     System.out.println("inne i col 4");
-        //     return checkRows(position, 1);
-        // }
-
-                    // if (hits == 0) {
-            //     // System.out.println("inne i hits == 0");
-            //     // orgHitPos = position; 
-            //     hitPos = position;
- 
-            // }
-            //hitPos = position; 
-
-            // hits ++; 
-            
-            // if (hits >= 3) {
-            //     //doubleCheckRows(orgHitPos);
-            //     hits = 0; 
-            // } 
 
 
 
