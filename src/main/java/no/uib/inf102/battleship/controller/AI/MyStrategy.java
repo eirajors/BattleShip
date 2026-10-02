@@ -1,10 +1,5 @@
 package no.uib.inf102.battleship.controller.AI;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
-import no.uib.inf102.battleship.model.ship.Direction;
 import no.uib.inf102.battleship.model.shot.ShotResult;
 import no.uib.inf102.grid.CellPosition;
 
@@ -22,18 +17,15 @@ public class MyStrategy implements IStrategy {
 
     private final boolean[][] shotAt; 
     private final ShotResult[][] hitsChart; 
-    private static int hits; 
-    private static CellPosition hitPos; 
-    private static CellPosition lastShot; 
     private static CellPosition orgHitPos; 
+    private static boolean isHit; 
 
 
     public  MyStrategy() {
         shotAt = new boolean[BOARD_SIZE][BOARD_SIZE];
         hitsChart = new ShotResult[BOARD_SIZE][BOARD_SIZE]; 
-        hits = 0;  
-        MyStrategy.hitPos = null; 
-        MyStrategy.lastShot = null; 
+        orgHitPos = null; 
+        isHit = false; 
 
     }
 
@@ -48,15 +40,11 @@ public class MyStrategy implements IStrategy {
         // gå hver tredje, hvis den registrerer hit, tar den alle rundt den før den går videre til neste
         // hvis forrige hits er 0 kaller den på funksjon for å gå videre, hvis den er mellom 0 og 3 så 
         // kaller den på funksjon for å skyte rundt 
-        if (hits == 0) {
+        if (!isHit) {
             return shootEveryThird(); 
         }
-
         else {
-            System.out.println("her kommer hitpoS:");
-            System.out.println(hitPos);
-            return shootAroundHitsChart(hitPos);
-            // return shootAround(hitPos); 
+            return shootAroundHitsChart(orgHitPos);
         }
 
     }
@@ -73,125 +61,95 @@ public class MyStrategy implements IStrategy {
     public void registerShot(CellPosition position, boolean hit) {
         shotAt[position.row()][position.col()] = true;  
 
-
         if (hit) {
-            //isLooking = true; 
-            System.out.println("inne i hit");
             hitsChart[position.row()][position.col()] = ShotResult.HIT; 
-
-            if (hits == 0) {
-                System.out.println("inne i hits == 0");
-                orgHitPos = position; 
-                hitPos = position;
- 
-            }
-            hitPos = position; 
-
-            hits ++; 
             
-            if (hits >= 3) {
-                hits = 0; 
-            } 
+            if (!isHit) {
+                orgHitPos = position;
+            }
+            isHit = true; 
+            // if (hits == 0) {
+            //     // System.out.println("inne i hits == 0");
+            //     // orgHitPos = position; 
+            //     hitPos = position;
+ 
+            // }
+            //hitPos = position; 
+
+            // hits ++; 
+            
+            // if (hits >= 3) {
+            //     //doubleCheckRows(orgHitPos);
+            //     hits = 0; 
+            // } 
         }
         else {
-            System.out.println("endrer hitpos fra " + hitPos + " til " + orgHitPos);
             hitsChart[position.row()][position.col()] = ShotResult.MISS; 
-            hitPos = orgHitPos; 
         }
-        // lagrer dette shottet slik at man kan bruke det i neste shot for å beregne hvor man skal skyte
-        lastShot = new CellPosition(position.row(), position.col());
 
     }
 
     // lagre neste man skal skyte i en next, regn deretter ut next. skyt next. om den er false lag en annen next
 
-    // private CellPosition getNext(CellPosition currPos) {
-    //     return new CellPosition(currPos.row(), currPos.col());
-    // }
-
     private CellPosition shootAroundHitsChart (CellPosition position) {
-        //sjekke kolonner først, hvis de ikke er skutt sjekk dem, om de er false gå og sjekk rader
-        // skal gå til venstre helt til den treffer false -> lagre forrige posisjon i en curr funksjon? 
+        int col = position.col(); 
+        int row = position.row(); 
+        CellPosition next = null; 
 
-        System.out.println("inne i shoothitschart");
-        if (position.col() - 1 < 0 && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT) {
-            System.out.println("inne i pos.col < 0");
-            return checkColumns(position, 1);
+        if (col + 1 < BOARD_SIZE && hitsChart[row][col + 1] != ShotResult.MISS) {
+            next = checkColumns(position, 1); 
+        }
+        if (next == null && col - 1 >= 0 && hitsChart[row][col - 1] != ShotResult.MISS) {
+            next = checkColumns(position, -1);
+        }
+        if (next == null && row + 1 < BOARD_SIZE && hitsChart[row + 1][col] != ShotResult.MISS) { 
+            next = checkRows(position, 1);
+        }
+        if (next == null && row - 1 >= 0 && hitsChart[row - 1][col] != ShotResult.MISS) {
+            next = checkRows(position, -1);
+        }
+        if (next == null) {
+            isHit = false; 
+            return shootEveryThird(); 
         }
 
-        if (hitsChart[position.row()][position.col() - 1] == null && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT ) {
-            System.out.println("inne i col 1");
-            return checkColumns(position, -1);
-        }
-        else if (hitsChart[position.row()][position.col() + 1] == null ) {
-            System.out.println("inne i col 2");
-            return checkColumns(position, 1);
-        }
-
-        if (position.row() - 1 < 0 && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT)  {
-            return checkRows(position, 1);
-        }
-
-
-        if (hitsChart[position.row() - 1][position.col()] == null ) {
-            System.out.println("inne i col 3");
-            return checkRows(position, -1);
-        }
-        else {
-            System.out.println("inne i col 4");
-            return checkRows(position, 1);
-        }
-        
-
+        return next; 
     }
+
+    // private CellPosition checkAround (CellPosition position) {
+
+    // }
 
 
     private CellPosition checkColumns (CellPosition position, int direction) {
-        System.out.println("inne i check columns");
 
         int row = position.row();
 
-        System.out.println("row = position.row()");
-        System.out.println(position);
-
-        if (direction < 0) {
-            for (int col = position.col(); col >= 0; col --) {
-                if (!shotAt[row][col]) {
+        for (int col = position.col() + direction; col >= 0 && col < BOARD_SIZE; col += direction) {
+                if (hitsChart[row][col] == null) {
                     return new CellPosition(row, col);
                 }
-            }
-        }
-        else {
-            for (int col = position.col(); col < BOARD_SIZE; col ++) {
-                if (!shotAt[row][col]) {
-                    return new CellPosition(row, col);
+                if (hitsChart[row][col] == ShotResult.MISS) {
+                    return null; 
                 }
-            }
+            
         }
-        
         return null; 
     }
 
     private CellPosition checkRows(CellPosition position, int direction) {
 
-        int col = position.col(); 
+        int col = position.col();
 
-        if (direction < 0) {
-            for (int row = position.row(); row >= 0; row --) {
-                if (!shotAt[row][col]) {
+        for (int row = position.row() + direction; row >= 0 && row < BOARD_SIZE; row += direction) {
+                if (hitsChart[row][col] == null) {
                     return new CellPosition(row, col);
                 }
-            }
-        }
-
-        else {
-            for (int row = position.row(); row < BOARD_SIZE; row ++) {
-                if (!shotAt[row][col]) {
-                    return new CellPosition(row, col);
+                if (hitsChart[row][col] == ShotResult.MISS) {
+                    return null; 
                 }
-            }
+            
         }
-
         return null; 
     }
     
@@ -212,9 +170,82 @@ public class MyStrategy implements IStrategy {
                 if (!shotAt[row][col]) {
                     return new CellPosition(row, col); 
                 }
+                
             }
         }
 
         return null; 
     }
+
+
+ 
 }
+
+
+
+
+   // private CellPosition doubleCheckRows(CellPosition position) {
+    //     System.out.println("inne i double check rows"); 
+
+    //     int row = position.row(); 
+    //     int col = position.col(); 
+        
+    //     CellPosition next = null; 
+
+    //     if (row + 2 < BOARD_SIZE && hitsChart[row + 1][col] != ShotResult.MISS) { 
+    //         next = checkRows(position, 1);
+    //     }
+    //     if (next == null && row - 1 > 0 && hitsChart[row - 1][col] != ShotResult.MISS) {
+    //         next = checkRows(position, - 1);
+    //     }
+    //     if (next == null) {
+    //         hits = 0; 
+    //         return shootEveryThird(); 
+    //     }
+
+    //     return next; 
+
+    // }
+      //sjekke kolonner først, hvis de ikke er skutt sjekk dem, om de er false gå og sjekk rader
+        // skal gå til venstre helt til den treffer false -> lagre forrige posisjon i en curr funksjon? 
+
+
+
+        // System.out.println("inne i shoothitschart");
+        // if (position.col() - 1 < 0 && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT) {
+        //     System.out.println("inne i pos.col < 0");
+        //     return checkColumns(position, 1);
+        // }
+
+        // if (position.row() - 1 < 0)  {
+        //     System.out.println("inne i pos.row < 0");
+        //     return checkRows(position, 1);
+        // }
+
+        // if (position.col() + 2 > BOARD_SIZE && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT) {
+        //     System.out.println("inne i pos.col >> ");
+        //     return checkColumns(position, -1);
+        // }
+
+        // if (position.row() + 2 > BOARD_SIZE && hitsChart[lastShot.row()][lastShot.col()] == ShotResult.HIT) {
+        //     System.out.println("inne i pos.row >> ");
+        //     return checkRows(position, -1);
+        // }
+
+        // if (hitsChart[position.row()][position.col() - 1] == null || hitsChart[position.row()][position.col() - 1] == ShotResult.HIT) {
+        //     System.out.println("inne i col 1");
+        //     return checkColumns(position, -1);
+        // }
+        // else if (hitsChart[position.row()][position.col() + 1] == null ) {
+        //     System.out.println("inne i col 2");
+        //     return checkColumns(position, 1);
+        // }
+
+        // if (hitsChart[position.row() - 1][position.col()] == null ) {
+        //     System.out.println("inne i col 3");
+        //     return checkRows(position, -1);
+        // }
+        // else {
+        //     System.out.println("inne i col 4");
+        //     return checkRows(position, 1);
+        // }
