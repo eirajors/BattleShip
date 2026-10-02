@@ -1,5 +1,8 @@
 package no.uib.inf102.battleship.controller.AI;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import no.uib.inf102.battleship.model.shot.ShotResult;
 import no.uib.inf102.grid.CellPosition;
 
@@ -19,6 +22,7 @@ public class MyStrategy implements IStrategy {
     private final ShotResult[][] hitsChart; 
     private static CellPosition orgHitPos; 
     private static boolean isHit; 
+    private static List<CellPosition> hitPositions; 
 
 
     public  MyStrategy() {
@@ -26,6 +30,7 @@ public class MyStrategy implements IStrategy {
         hitsChart = new ShotResult[BOARD_SIZE][BOARD_SIZE]; 
         orgHitPos = null; 
         isHit = false; 
+        hitPositions = new ArrayList<>(); 
 
     }
 
@@ -41,7 +46,11 @@ public class MyStrategy implements IStrategy {
         // hvis forrige hits er 0 kaller den på funksjon for å gå videre, hvis den er mellom 0 og 3 så 
         // kaller den på funksjon for å skyte rundt 
         if (!isHit) {
-            return shootEveryThird(); 
+            CellPosition pos = shootEveryThird(); 
+            if (pos != null) {
+                return pos; 
+            }
+            return checkAroundHitPositions(); 
         }
         else {
             return shootAroundHitsChart(orgHitPos);
@@ -68,20 +77,8 @@ public class MyStrategy implements IStrategy {
                 orgHitPos = position;
             }
             isHit = true; 
-            // if (hits == 0) {
-            //     // System.out.println("inne i hits == 0");
-            //     // orgHitPos = position; 
-            //     hitPos = position;
- 
-            // }
-            //hitPos = position; 
+            hitPositions.add(position);
 
-            // hits ++; 
-            
-            // if (hits >= 3) {
-            //     //doubleCheckRows(orgHitPos);
-            //     hits = 0; 
-            // } 
         }
         else {
             hitsChart[position.row()][position.col()] = ShotResult.MISS; 
@@ -89,9 +86,31 @@ public class MyStrategy implements IStrategy {
 
     }
 
-    // lagre neste man skal skyte i en next, regn deretter ut next. skyt next. om den er false lag en annen next
 
+    /**
+     * Shoots around the given cellposition. It will shoot in every direction until it gets 
+     * a Shotresult.MISS from both checkcolumns and checkrows. It will then return the default shooting
+     * method. 
+     * 
+     * @param position the cellposition which was hit and is going to be shot around
+     * @return the next available cellposition to shoot
+     */
     private CellPosition shootAroundHitsChart (CellPosition position) {
+        
+        CellPosition next = lookAroundPosition(position); 
+
+        if (next == null) {
+            isHit = false; 
+            next = shootEveryThird(); 
+        }
+        if (next == null) {
+            next = checkAroundHitPositions(); 
+        }
+
+        return next; 
+    }
+
+    private CellPosition lookAroundPosition(CellPosition position) {
         int col = position.col(); 
         int row = position.row(); 
         CellPosition next = null; 
@@ -108,19 +127,58 @@ public class MyStrategy implements IStrategy {
         if (next == null && row - 1 >= 0 && hitsChart[row - 1][col] != ShotResult.MISS) {
             next = checkRows(position, -1);
         }
-        if (next == null) {
-            isHit = false; 
-            return shootEveryThird(); 
-        }
-
+        
         return next; 
     }
 
-    // private CellPosition checkAround (CellPosition position) {
 
-    // }
+    // lagre alle hit positions i en liste, og deretter sjekk rundt alle - failsafe
+    /**
+     * 
+     * @return
+     */
+    private CellPosition checkAroundHitPositions () {
+        CellPosition next = null; 
 
+        for (CellPosition pos : hitPositions) {
+            next = lookAroundPosition(pos);
+            if (next != null) {
+                return next; 
+            }
+        }
 
+        return null;
+
+    }
+
+    private CellPosition checkDirections (CellPosition position, int cDir, int rDir) {
+
+        int col = position.col() + cDir;
+        int row = position.row() + rDir; 
+
+        while (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE ) {
+            if (hitsChart[row][col] == null) {
+                    return new CellPosition(row, col);
+            }
+            if (hitsChart[row][col] == ShotResult.MISS) {
+                return null; 
+            }
+            col += cDir; 
+            row += rDir; 
+        }
+        
+        return null; 
+
+    }
+
+    /**
+     * checks the columns either below or above the given cellposition depending on the direction
+     * 
+     * @param position the original hit position 
+     * @param direction the direction in which to shoot
+     * @return a new cellposition to shoot if the next cellposition is empty, if it is already a miss
+     *         it will return null
+     */
     private CellPosition checkColumns (CellPosition position, int direction) {
 
         int row = position.row();
@@ -137,6 +195,15 @@ public class MyStrategy implements IStrategy {
         return null; 
     }
 
+    
+    /**
+     * checks the rows either below or above the given cellposition depending on the direction
+     * 
+     * @param position the original hit position 
+     * @param direction the direction in which to shoot
+     * @return a new cellposition to shoot if the next cellposition is empty, if it is already a miss
+     *         it will return null
+     */
     private CellPosition checkRows(CellPosition position, int direction) {
 
         int col = position.col();
@@ -176,8 +243,6 @@ public class MyStrategy implements IStrategy {
 
         return null; 
     }
-
-
  
 }
 
@@ -249,3 +314,21 @@ public class MyStrategy implements IStrategy {
         //     System.out.println("inne i col 4");
         //     return checkRows(position, 1);
         // }
+
+                    // if (hits == 0) {
+            //     // System.out.println("inne i hits == 0");
+            //     // orgHitPos = position; 
+            //     hitPos = position;
+ 
+            // }
+            //hitPos = position; 
+
+            // hits ++; 
+            
+            // if (hits >= 3) {
+            //     //doubleCheckRows(orgHitPos);
+            //     hits = 0; 
+            // } 
+
+
+
