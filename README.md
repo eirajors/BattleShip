@@ -259,4 +259,6 @@ The second method gives you the feedback on your previous attack and it is upto 
 
 For this task you must explain your code. What was your idea for your strategy?
 
-*Write your answer here*
+As every ship has a length of 3, by shooting every third in a row you would be guaranteed to hit at least one CellPosition of each ship, making that my default method. 
+If a ship was hit, the idea was to shoot around that position. The problem then, was that it didn't always get all the positions. This was because if two ships (often vertical and horizontal) were next to each other, the shooting method could mistake the vertical ship as a part of the horizontal ship. I then changed it so that it searchs until it hits a miss in every direction of the original hitposition, regardless if a ship is sunk. Still, if the the original hitposition was not a part of the vertical ship, it wouldn´t always hit the last position. 
+I then created a failsafe method called checkAroundHitpositions, which looks around every hitposition that it has found. This would be the method which was used after shooteveryThird() had finished, and there were still some missing ships. It will look through all the hitpositions, and send every one of them to the lookAround method. For every try, this has always worked, but to be completely safe, I created a last shootUnshot method, which shoots all the unshot positions just to be safe. 
