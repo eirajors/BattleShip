@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 import no.uib.inf102.battleship.model.BattleShipBoard;
 import no.uib.inf102.battleship.model.ship.Direction;
@@ -20,7 +21,8 @@ import no.uib.inf102.grid.CellPosition;
 public class MyPlacer implements IPlacer {
     private static final int BOARD_SIZE = BattleShipBoard.SIZE; 
     private static final int MAX_ATTEMPTS = 10_000; 
-
+    private static final int CENTRE_LOW = 5; 
+    private static final int CENTRE_HIGH = 6; 
     private int low; 
     private int high; 
     private int horizontal; 
@@ -33,7 +35,6 @@ public class MyPlacer implements IPlacer {
 
     public MyPlacer() {
         random = new Random(); 
-
         low = 1; 
         high = 10; 
         horizontal = 0; 
@@ -50,6 +51,8 @@ public class MyPlacer implements IPlacer {
      * outside the board or overlapping an existing ship.
      *
      * @param board the board where the ships should be placed
+     * @throws IllegalStateException if all ships could not be placed
+     *         within the maximum number of attempts
      */
     @Override
     public void placeShips(BattleShipBoard board) {
@@ -67,45 +70,85 @@ public class MyPlacer implements IPlacer {
                 );
             }
 
-            CellPosition position = choosePosition();
             Direction direction = chooseDirection();
+            CellPosition position = choosePosition(direction);
 
             if (board.placeShip(position, direction)) {
+                if (direction == Direction.HORIZONTAL) {
+                    horizontal ++; 
+                }
+                else {
+                    vertical ++;
+                }
                 positions.add(position); 
             }
         }
 
     }
 
+
+    /**
+     * Chooses a random direction. Cannot place more than 2 ships of the same direction
+     * 
+     * @return the direction of a ship
+     */
     private Direction chooseDirection() {
         if (horizontal == 2) {
-            return Direction.VERTICAL; 
+            return Direction.VERTICAL;
         }
         if (vertical == 2) {
-            return Direction.HORIZONTAL; 
+            return Direction.HORIZONTAL;
         }
-
         if (random.nextBoolean()) {
-            horizontal ++; 
             return Direction.HORIZONTAL; 
         }
-        vertical ++; 
 
         return Direction.VERTICAL;
     }
 
-    private CellPosition choosePosition() {
-        int[] illegalPlacements = {5, 6}; 
-
+    /**
+     * Chooses the position of a ship, but can not place ships in the centre 
+     * as that is more likely for a human opponent to shoot at
+     * Also does not choose a start position at the edges of the board
+     * @return the position of the ships
+     */
+    private CellPosition choosePosition(Direction dir) {
+        
         int row = random.nextInt(high - low) + low; 
         int col = random.nextInt(high - low) + low; 
-        List illArr = Arrays.asList(illegalPlacements); 
 
-        while (illArr.contains(row) && illArr.contains(col)) {
+        while (true) {
             row = random.nextInt(high - low) + low; 
             col = random.nextInt(high - low) + low; 
+            if (!overlapsCentre(row, col, dir)) {
+                break; 
+            }
         }
 
         return new CellPosition(row, col); 
+    }
+
+    /**
+     * Checks if the ship that is going to be placed overlaps the centre
+     * 
+     * @param row what row is the start position
+     * @param col what column is the start position
+     * @param dir the direction of the ship placement 
+     * @return true if it overlaps the centre, false otherwise
+     */
+    private boolean overlapsCentre(int row, int col, Direction dir) {
+        for (int i = 0; i < 3; i ++) {
+            if (dir == Direction.VERTICAL) {
+                row ++;
+            }
+            else {
+                col ++;
+            }
+            if (row >= CENTRE_LOW && row <= CENTRE_HIGH &&
+                    col >= CENTRE_LOW && col <= CENTRE_HIGH) {
+                        return true; 
+                }
+        }
+        return false; 
     }
 }
