@@ -21,27 +21,23 @@ import no.uib.inf102.grid.CellPosition;
 public class MyPlacer implements IPlacer {
     private static final int BOARD_SIZE = BattleShipBoard.SIZE; 
     private static final int MAX_ATTEMPTS = 10_000; 
-    private static final int CENTRE_LOW = 5; 
-    private static final int CENTRE_HIGH = 6; 
-    private int low; 
-    private int high; 
+    private static final int CENTRE_LOW = 4; 
+    private static final int CENTRE_HIGH = 5; 
+    private static final int SHIP_LENGTH = 3; 
+
+    private final boolean[][] occupied; 
+    private final Random random; 
     private int horizontal; 
     private int vertical; 
-    private List<CellPosition> positions; 
-    // private int[] illegalPlacements; 
-
-    private final Random random; 
 
 
     public MyPlacer() {
         random = new Random(); 
-        low = 1; 
-        high = 10; 
+        occupied = new boolean[BOARD_SIZE][BOARD_SIZE]; 
         horizontal = 0; 
         vertical = 0; 
-        positions = new ArrayList<>(); 
-
     }
+
     /**
      * Places all ships on the given board.
      *
@@ -56,9 +52,6 @@ public class MyPlacer implements IPlacer {
      */
     @Override
     public void placeShips(BattleShipBoard board) {
-        // board.placeShip(new CellPosition(1, 1), Direction.HORIZONTAL);
-        // board.placeShip(new CellPosition(4, 5), Direction.HORIZONTAL);
-        // board.placeShip(new CellPosition(6, 3), Direction.VERTICAL);
 
         int attempts = 0; 
 
@@ -73,19 +66,22 @@ public class MyPlacer implements IPlacer {
             Direction direction = chooseDirection();
             CellPosition position = choosePosition(direction);
 
+            if (touchesAnotherShip(position.row(), position.col(), direction)) {
+                continue; 
+            }
+            
             if (board.placeShip(position, direction)) {
+                markOccupied(position, direction);
                 if (direction == Direction.HORIZONTAL) {
                     horizontal ++; 
-                }
+                    }
                 else {
                     vertical ++;
                 }
-                positions.add(position); 
             }
         }
 
     }
-
 
     /**
      * Chooses a random direction. Cannot place more than 2 ships of the same direction
@@ -109,25 +105,21 @@ public class MyPlacer implements IPlacer {
     /**
      * Chooses the position of a ship, but can not place ships in the centre 
      * as that is more likely for a human opponent to shoot at
-     * Also does not choose a start position at the edges of the board
      * @return the position of the ships
      */
     private CellPosition choosePosition(Direction dir) {
         
-        int row = random.nextInt(high - low) + low; 
-        int col = random.nextInt(high - low) + low; 
+        int row = random.nextInt(BOARD_SIZE); 
+        int col = random.nextInt(BOARD_SIZE); 
 
-        while (true) {
-            row = random.nextInt(high - low) + low; 
-            col = random.nextInt(high - low) + low; 
-            if (!overlapsCentre(row, col, dir)) {
-                break; 
-            }
+        while (overlapsCentre(row, col, dir)) {
+            row = random.nextInt(BOARD_SIZE); 
+            col = random.nextInt(BOARD_SIZE); 
         }
 
         return new CellPosition(row, col); 
     }
-
+       
     /**
      * Checks if the ship that is going to be placed overlaps the centre
      * 
@@ -137,18 +129,88 @@ public class MyPlacer implements IPlacer {
      * @return true if it overlaps the centre, false otherwise
      */
     private boolean overlapsCentre(int row, int col, Direction dir) {
-        for (int i = 0; i < 3; i ++) {
+        for (int i = 0; i < SHIP_LENGTH; i ++) {
+            
+            if (row >= CENTRE_LOW && row <= CENTRE_HIGH &&
+                    col >= CENTRE_LOW && col <= CENTRE_HIGH) {
+                        return true; 
+            }
+            
             if (dir == Direction.VERTICAL) {
                 row ++;
             }
             else {
                 col ++;
             }
-            if (row >= CENTRE_LOW && row <= CENTRE_HIGH &&
-                    col >= CENTRE_LOW && col <= CENTRE_HIGH) {
-                        return true; 
-                }
         }
         return false; 
     }
+
+    /**
+     * Checks if a ship will be next to another ship 
+     * 
+     * @param row the start row of the ship
+     * @param col the start column of the ship
+     * @param dir the direction of the ship
+     * @return true if it has at least one position next to another ship, false otherwise
+     */
+    private boolean touchesAnotherShip(int row, int col, Direction dir) {
+
+        for (int i = 0; i < SHIP_LENGTH; i ++) {
+            
+            for (int dr = -1; dr <= 1; dr ++) {
+                for (int dc = -1; dc <= 1; dc ++) {
+                    if (isOccupied(row + dr, col + dc)) {
+                        return true; 
+                    }
+                }
+            }
+            if (dir == Direction.VERTICAL) {
+                row ++;
+            }
+            else {
+                col ++;
+            }
+        }
+        return false; 
+    }
+
+    /**
+     * Checks if a position is occupied
+     * @param row the row in the position to check  
+     * @param col the column in the position to check
+     * @return false if the position is outside the board or if a position is available
+     *         true otherwise
+     */
+    private boolean isOccupied(int row, int col) {
+        if (row < 0 || col < 0 || row >= BOARD_SIZE || col >= BOARD_SIZE) {
+            return false; 
+        }
+        return occupied[row][col]; 
+    }
+
+    /**
+     * Marks the positions of a ship in the occupied matrix
+     * 
+     * @param pos the starting position of the ship
+     * @param dir the direction of the ship
+     */
+    private void markOccupied (CellPosition pos, Direction dir) {
+        int row = pos.row(); 
+        int col = pos.col(); 
+        
+        for (int i = 0; i < SHIP_LENGTH; i ++) {
+            occupied[row][col] = true; 
+
+            if (dir == Direction.HORIZONTAL) {
+                col ++;  
+
+            }
+            else {
+                row ++;
+            }
+            
+        }
+    }
+
 }

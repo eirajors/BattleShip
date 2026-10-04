@@ -44,7 +44,7 @@ public class BattleShipBoard {
      * @return true if the ship was successfully placed, otherwise false
      */
     public boolean placeShip(CellPosition startPosition, Direction direction) {
-        // Implement ship placement.
+
         if (ships.size() >= NUMBER_OF_SHIPS) {
             return false;
         }
@@ -53,10 +53,8 @@ public class BattleShipBoard {
             ships.add(newShip); 
             return true; 
         }
-        //ships.add(newShip);
 
         return false;
-        //return false;
     }
 
     /**
@@ -108,7 +106,7 @@ public class BattleShipBoard {
      *         otherwise false
      */
     public boolean allShipsSunk() {
-        // Check whether all ships have been sunk.
+
         for (Ship ship : ships) {
             if (!ship.isSunk()) {
                 return false; 
